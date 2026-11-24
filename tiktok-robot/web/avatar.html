@@ -1,0 +1,613 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:,">
+<title>Avatar Robot</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: transparent; overflow: hidden;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+
+  /* ---------- BACKGROUND STUDIO ---------- */
+  #bg {
+    position: absolute; inset: 0; z-index: 0;
+    background:
+      radial-gradient(circle at 50% 30%, #1b3a5c 0%, #0a1626 55%, #050b14 100%);
+  }
+  #glow {
+    position: absolute; left: 50%; top: 42%;
+    width: 900px; height: 900px; transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(0,229,255,0.22) 0%, rgba(0,229,255,0) 60%);
+    z-index: 1;
+  }
+  #floor {
+    position: absolute; left: 50%; bottom: 8%;
+    width: 1500px; height: 300px; transform: translateX(-50%);
+    background: radial-gradient(ellipse at center, rgba(0,229,255,0.18) 0%, rgba(0,229,255,0) 70%);
+    z-index: 1;
+  }
+  .spark {
+    position: absolute; border-radius: 50%;
+    background: #7cd8ff; opacity: 0.5; z-index: 1;
+    animation: floatUp linear infinite;
+  }
+  @keyframes floatUp {
+    from { transform: translateY(0); opacity: 0; }
+    20%  { opacity: 0.7; }
+    to   { transform: translateY(-320px); opacity: 0; }
+  }
+
+  #stage {
+    position: absolute; inset: 0; z-index: 2;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+  }
+  #robot {
+    width: 480px; height: 620px;
+    transform-origin: 50% 92%;
+    animation: bob 3.6s ease-in-out infinite;
+    filter: drop-shadow(0 30px 45px rgba(0,229,255,0.35));
+  }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25%      { transform: translateY(-10px) rotate(-1.2deg); }
+    50%      { transform: translateY(0) rotate(0deg); }
+    75%      { transform: translateY(-8px) rotate(1.2deg); }
+  }
+  .talking #robot { animation: bobFast 1s ease-in-out infinite; }
+  @keyframes bobFast {
+    0%, 100% { transform: translateY(0) rotate(-1.6deg); }
+    50%      { transform: translateY(-12px) rotate(1.6deg); }
+  }
+
+  #head { transform-origin: 230px 340px; transition: transform 0.09s ease-out; }
+  #armL { transform-origin: 150px 430px; transition: transform 0.15s ease-out; }
+  #armR { transform-origin: 320px 430px; transition: transform 0.15s ease-out; }
+  .eye { transform-origin: center; animation: blink 4.2s infinite; }
+  @keyframes blink {
+    0%, 93%, 100% { transform: scaleY(1); }
+    95.5%         { transform: scaleY(0.08); }
+  }
+
+  /* ---------- LALAT ---------- */
+  #fly {
+    position: absolute; z-index: 3; font-size: 34px;
+    display: none; pointer-events: none;
+  }
+  #fly.on { display: block; animation: flyPath 4s ease-in-out; }
+  @keyframes flyPath {
+    0%   { left: 20%; top: 60%; transform: rotate(0deg); }
+    25%  { left: 70%; top: 35%; transform: rotate(20deg); }
+    50%  { left: 45%; top: 70%; transform: rotate(-15deg); }
+    75%  { left: 80%; top: 50%; transform: rotate(10deg); }
+    100% { left: 20%; top: 60%; transform: rotate(0deg); }
+  }
+
+  /* ---------- EFEK MERIAH ---------- */
+  #fxLayer { position: absolute; inset: 0; z-index: 8; pointer-events: none; overflow: hidden; }
+  .confetti {
+    position: absolute; width: 12px; height: 18px; top: -30px;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); opacity: 0.2; }
+  }
+  .firework {
+    position: absolute; width: 6px; height: 6px; border-radius: 50%;
+    animation: burst 1.2s ease-out forwards;
+  }
+  @keyframes burst {
+    from { transform: scale(0.2); opacity: 1; }
+    to   { transform: scale(3.5); opacity: 0; }
+  }
+  #flash {
+    position: absolute; inset: 0; background: #ffffff;
+    opacity: 0; z-index: 9; pointer-events: none;
+  }
+  #flash.on { animation: flashAnim 0.6s ease-out; }
+  @keyframes flashAnim { 0% { opacity: 0.85; } 100% { opacity: 0; } }
+
+  #banner {
+    position: absolute; top: 40%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.6);
+    z-index: 10; opacity: 0;
+    font-size: 76px; font-weight: 900; color: #fff;
+    text-shadow: 0 0 20px #ffd700, 0 0 40px #ff8a00;
+    pointer-events: none; white-space: nowrap;
+  }
+  #banner.on { animation: bannerPop 3s ease-out; }
+  @keyframes bannerPop {
+    0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.4); }
+    15%  { opacity: 1; transform: translate(-50%,-50%) scale(1.15); }
+    30%  { transform: translate(-50%,-50%) scale(1); }
+    80%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%,-50%) scale(1.1); }
+  }
+
+  #subtitle {
+    position: absolute; bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    max-width: 84%;
+    padding: 12px 28px;
+    background: rgba(0, 18, 28, 0.78);
+    color: #00e5ff;
+    font-size: 40px; font-weight: 700;
+    text-align: center; border-radius: 16px;
+    text-shadow: 0 0 12px #00e5ff;
+    white-space: pre-wrap;
+    opacity: 0; transition: opacity 0.25s; z-index: 12;
+  }
+  #subtitle.show { opacity: 1; }
+
+  #nameTag {
+    position: absolute; top: 20px; left: 50%;
+    transform: translateX(-50%); z-index: 12;
+    color: #7CFC00; font-size: 30px; font-weight: 700;
+    letter-spacing: 3px;
+    text-shadow: 0 0 10px #7CFC00;
+  }
+
+  #startBtn {
+    position: absolute; inset: 0; z-index: 30;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    color: #00e5ff; font-size: 40px; font-weight: 700;
+    cursor: pointer; text-shadow: 0 0 12px #00e5ff;
+  }
+  #startBtn.hide { display: none; }
+
+  #testPanel {
+    position: absolute; top: 10px; right: 10px; z-index: 31;
+    background: rgba(0,0,0,0.78); padding: 12px; border-radius: 12px;
+    display: none; flex-direction: column; gap: 8px; width: 280px;
+    border: 1px solid #00e5ff55;
+    max-height: 96vh; overflow-y: auto;
+  }
+  #testPanel.show { display: flex; }
+  #testPanel h3 { margin: 0 0 4px; color: #00e5ff; font-size: 15px; }
+  #testPanel input {
+    padding: 8px; border-radius: 8px; border: 1px solid #00e5ff55;
+    background: #03202b; color: #cfefff; font-size: 14px;
+  }
+  #testPanel .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  #testPanel button {
+    flex: 1; padding: 8px 6px; border-radius: 8px; cursor: pointer;
+    border: 1px solid #00e5ff77; background: #04303d; color: #00e5ff;
+    font-size: 13px; font-weight: 600;
+  }
+  #testPanel button:hover { background: #06556b; }
+</style>
+</head>
+<body>
+  <div id="bg"></div>
+  <div id="glow"></div>
+  <div id="floor"></div>
+  <div id="fly">ðŸª°</div>
+  <div id="fxLayer"></div>
+  <div id="flash"></div>
+
+  <div id="stage">
+    <div id="nameTag">ROBO</div>
+    <svg id="robot" viewBox="0 0 460 620" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="bodyGrad" cx="42%" cy="28%" r="75%">
+          <stop offset="0%"   stop-color="#ffffff"/>
+          <stop offset="35%"  stop-color="#d7efff"/>
+          <stop offset="72%"  stop-color="#8fd4ff"/>
+          <stop offset="100%" stop-color="#2f7fb5"/>
+        </radialGradient>
+        <linearGradient id="faceGrad" x1="0" y1="0" x2="0.3" y2="1">
+          <stop offset="0%"   stop-color="#123a4d"/>
+          <stop offset="100%" stop-color="#061a24"/>
+        </linearGradient>
+        <radialGradient id="eyeGrad" cx="42%" cy="35%" r="70%">
+          <stop offset="0%"   stop-color="#eaffff"/>
+          <stop offset="45%"  stop-color="#33e0ff"/>
+          <stop offset="100%" stop-color="#0a8fb5"/>
+        </radialGradient>
+        <linearGradient id="earGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stop-color="#9ad9ff"/>
+          <stop offset="100%" stop-color="#2f7fb5"/>
+        </linearGradient>
+        <linearGradient id="legGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"  stop-color="#cfeaff"/>
+          <stop offset="100%" stop-color="#3a93c8"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Antena -->
+      <line x1="230" y1="78" x2="230" y2="34" stroke="#3a93c8" stroke-width="9"/>
+      <circle cx="230" cy="28" r="15" fill="#00e5ff">
+        <animate attributeName="r" values="12;17;12" dur="1.6s" repeatCount="indefinite"/>
+      </circle>
+
+      <!-- KAKI -->
+      <rect x="158" y="548" width="34" height="60" rx="16" fill="url(#legGrad)"/>
+      <rect x="268" y="548" width="34" height="60" rx="16" fill="url(#legGrad)"/>
+      <ellipse cx="175" cy="606" rx="30" ry="14" fill="#2f7fb5"/>
+      <ellipse cx="285" cy="606" rx="30" ry="14" fill="#2f7fb5"/>
+
+      <!-- TANGAN (kiri & kanan) -->
+      <g id="armL">
+        <rect x="126" y="420" width="28" height="120" rx="14" fill="url(#legGrad)"/>
+        <circle cx="140" cy="548" r="20" fill="#8fd4ff" stroke="#2f7fb5" stroke-width="3"/>
+      </g>
+      <g id="armR">
+        <rect x="306" y="420" width="28" height="120" rx="14" fill="url(#legGrad)"/>
+        <circle cx="320" cy="548" r="20" fill="#8fd4ff" stroke="#2f7fb5" stroke-width="3"/>
+      </g>
+
+      <!-- BADAN -->
+      <rect x="150" y="400" width="160" height="160" rx="40" fill="url(#bodyGrad)"/>
+      <ellipse cx="200" cy="430" rx="55" ry="20" fill="#ffffff" opacity="0.3"/>
+      <!-- layar dada -->
+      <rect x="192" y="440" width="76" height="50" rx="12" fill="#0b2b3a"
+            stroke="#00e5ff" stroke-width="2"/>
+      <circle cx="230" cy="465" r="10" fill="#00e5ff">
+        <animate attributeName="opacity" values="1;0.3;1" dur="1.4s" repeatCount="indefinite"/>
+      </circle>
+      <!-- tombol -->
+      <circle cx="180" cy="515" r="8" fill="#ff5c8a"/>
+      <circle cx="280" cy="515" r="8" fill="#ffd700"/>
+
+      <!-- LEHER -->
+      <rect x="210" y="382" width="40" height="30" rx="10" fill="#3a93c8"/>
+
+      <!-- KEPALA -->
+      <g id="head">
+        <rect x="42"  y="200" width="40" height="86" rx="18" fill="url(#earGrad)"/>
+        <rect x="378" y="200" width="40" height="86" rx="18" fill="url(#earGrad)"/>
+        <circle cx="62"  cy="243" r="9" fill="#00e5ff" opacity="0.85"/>
+        <circle cx="398" cy="243" r="9" fill="#00e5ff" opacity="0.85"/>
+
+        <rect x="78" y="86" width="304" height="300" rx="86" fill="url(#bodyGrad)"/>
+        <ellipse cx="180" cy="130" rx="90" ry="30" fill="#ffffff" opacity="0.35"/>
+
+        <rect x="112" y="126" width="236" height="212" rx="56" fill="url(#faceGrad)"/>
+        <rect x="112" y="126" width="236" height="212" rx="56"
+              fill="none" stroke="#00e5ff" stroke-width="2" opacity="0.45"/>
+
+        <!-- Alis ekspresif -->
+        <rect id="browL" x="152" y="170" width="60" height="10" rx="5" fill="#00e5ff" opacity="0.8"/>
+        <rect id="browR" x="248" y="170" width="60" height="10" rx="5" fill="#00e5ff" opacity="0.8"/>
+
+        <!-- Mata -->
+        <g class="eye">
+          <circle cx="182" cy="210" r="30" fill="url(#eyeGrad)"/>
+          <circle cx="182" cy="210" r="12" fill="#05303c"/>
+          <circle cx="172" cy="200" r="5"  fill="#ffffff" opacity="0.9"/>
+        </g>
+        <g class="eye">
+          <circle cx="278" cy="210" r="30" fill="url(#eyeGrad)"/>
+          <circle cx="278" cy="210" r="12" fill="#05303c"/>
+          <circle cx="268" cy="200" r="5"  fill="#ffffff" opacity="0.9"/>
+        </g>
+
+        <!-- Mulut dinamis -->
+        <ellipse id="mouth" cx="230" cy="300" rx="42" ry="7"
+                 fill="#061820" stroke="#00e5ff" stroke-width="2.5"/>
+        <ellipse id="mouthInner" cx="230" cy="300" rx="30" ry="3"
+                 fill="#00b3cc" opacity="0.75"/>
+        <ellipse id="lidah" cx="230" cy="308" rx="18" ry="4"
+                 fill="#ff6f91" opacity="0"/>
+
+        <!-- Pipi -->
+        <circle cx="140" cy="262" r="15" fill="#ff7fa8" opacity="0.5"/>
+        <circle cx="320" cy="262" r="15" fill="#ff7fa8" opacity="0.5"/>
+      </g>
+    </svg>
+  </div>
+
+  <div id="subtitle"></div>
+  <div id="banner"></div>
+  <div id="startBtn">Klik untuk Aktifkan Suara</div>
+
+  <div id="testPanel">
+    <h3>Panel Test Interaksi</h3>
+    <input id="inUser" placeholder="Nama penonton" value="Budi">
+    <input id="inIsi" placeholder="Isi chat / nama gift" value="nama kamu siapa">
+    <div class="row">
+      <button data-act="join">Join</button>
+      <button data-act="chat">Chat</button>
+      <button data-act="follow">Follow</button>
+    </div>
+    <div class="row">
+      <button data-act="gift1">Gift 1</button>
+      <button data-act="gift5">Gift 5</button>
+      <button data-act="gift10">Gift 10</button>
+    </div>
+    <div class="row">
+      <button data-act="gift50">Gift 50</button>
+      <button data-act="joinclub">Khodam</button>
+    </div>
+    <div class="row">
+      <button data-act="idle_garuk">Idle: Garuk</button>
+      <button data-act="idle_fly">Idle: Lalat</button>
+    </div>
+    <div class="row">
+      <button data-act="idle_siul">Idle: Siul</button>
+      <button data-act="idle_wave">Idle: Lambaikan</button>
+    </div>
+  </div>
+
+<script>
+  const subtitleEl = document.getElementById('subtitle');
+  const head  = document.getElementById('head');
+  const armL  = document.getElementById('armL');
+  const armR  = document.getElementById('armR');
+  const mouth = document.getElementById('mouth');
+  const mouthInner = document.getElementById('mouthInner');
+  const lidah = document.getElementById('lidah');
+  const browL = document.getElementById('browL');
+  const browR = document.getElementById('browR');
+  const stage = document.getElementById('stage');
+  const startBtn = document.getElementById('startBtn');
+  const banner = document.getElementById('banner');
+  const fly = document.getElementById('fly');
+  const fxLayer = document.getElementById('fxLayer');
+  const flash = document.getElementById('flash');
+
+  let audioCtx = null, analyser = null, dataArray = null;
+  let currentSource = null, lastToken = 0;
+  let idleTick = 0, idleAction = null, idleUntil = 0;
+  let idleLastRun = Date.now();
+
+  // --- Partikel ---
+  function makeSparks() {
+    const bg = document.getElementById('bg');
+    for (let i = 0; i < 22; i++) {
+      const s = document.createElement('div');
+      s.className = 'spark';
+      const size = 2 + Math.random() * 4;
+      s.style.width = size + 'px'; s.style.height = size + 'px';
+      s.style.left = (Math.random() * 100) + '%';
+      s.style.top = (60 + Math.random() * 40) + '%';
+      s.style.animationDuration = (6 + Math.random() * 8) + 's';
+      s.style.animationDelay = (Math.random() * 8) + 's';
+      bg.appendChild(s);
+    }
+  }
+  makeSparks();
+
+  function ensureAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  // ---- EFEK MERIAH ----
+  function burstConfetti(n, colors) {
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = (Math.random() * 100) + '%';
+      c.style.background = colors[Math.floor(Math.random() * colors.length)];
+      c.style.animationDuration = (2 + Math.random() * 2) + 's';
+      c.style.animationDelay = (Math.random() * 0.4) + 's';
+      fxLayer.appendChild(c);
+      setTimeout(() => c.remove(), 5000);
+    }
+  }
+  function fireworkAt(x, y, color) {
+    for (let i = 0; i < 24; i++) {
+      const f = document.createElement('div');
+      f.className = 'firework';
+      f.style.left = x + 'px'; f.style.top = y + 'px';
+      f.style.background = color;
+      const ang = (Math.PI * 2 / 24) * i;
+      const dist = 40 + Math.random() * 80;
+      f.animate([
+        { transform: 'translate(0,0) scale(1)', opacity: 1 },
+        { transform: `translate(${Math.cos(ang)*dist}px, ${Math.sin(ang)*dist}px) scale(0.3)`, opacity: 0 }
+      ], { duration: 900 + Math.random()*500, easing: 'ease-out' });
+      fxLayer.appendChild(f);
+      setTimeout(() => f.remove(), 1600);
+    }
+  }
+  function showBanner(text, color) {
+    banner.textContent = text;
+    banner.style.textShadow = `0 0 20px ${color}, 0 0 40px ${color}`;
+    banner.classList.remove('on'); void banner.offsetWidth; banner.classList.add('on');
+  }
+  function doFlash() { flash.classList.remove('on'); void flash.offsetWidth; flash.classList.add('on'); }
+
+  function efekDoa() {
+    // pendar lembut + partikel naik perlahan
+    burstConfetti(30, ['#7cd8ff', '#a0e0ff', '#ffffff']);
+    showBanner('AMIN', '#7cd8ff');
+  }
+  function efekUltah() {
+    // meriah: konfeti + mercon + kilat + banner
+    burstConfetti(120, ['#ffd700', '#ff5c8a', '#00e5ff', '#7CFC00', '#ff8a00']);
+    const W = window.innerWidth, H = window.innerHeight;
+    for (let k = 0; k < 6; k++) {
+      setTimeout(() => {
+        fireworkAt(Math.random()*W*0.8 + W*0.1, Math.random()*H*0.5 + H*0.1,
+          ['#ffd700','#ff5c8a','#00e5ff','#7CFC00'][k % 4]);
+      }, k * 220);
+    }
+    doFlash();
+    showBanner('ðŸŽ‰ SELAMAT ULANG TAHUN ðŸŽ‰', '#ffd700');
+  }
+
+  // ---- IDLE GERAKAN ----
+  function startIdle(kind) {
+    idleAction = kind; idleUntil = Date.now() + 3500;
+    if (kind === 'fly') {
+      fly.classList.remove('on'); void fly.offsetWidth; fly.classList.add('on');
+      setTimeout(() => fly.classList.remove('on'), 4000);
+    }
+  }
+  function maybeIdle() {
+    const now = Date.now();
+    if (now < idleUntil) return;
+    idleAction = null;
+    // Pilih idle acak tiap ~8 detik (pakai waktu, bukan frame counter)
+    if (now - idleLastRun >= 8000) {
+      idleLastRun = now;
+      if (!analyser) {
+        const pool = ['garuk', 'fly', 'siul', 'wave'];
+        startIdle(pool[Math.floor(Math.random() * pool.length)]);
+      }
+    }
+  }
+
+  // ---- Aktifkan ----
+  async function activate() {
+    ensureAudio();
+    startBtn.classList.add('hide');
+    try { await audioCtx.resume(); } catch (e) {}
+    document.getElementById('testPanel').classList.add('show');
+    speakAudio('/audio/opening.mp3', 'Sistem aktif. Halo, aku Robo!');
+    poll();
+  }
+  startBtn.addEventListener('click', activate);
+
+  // ---- Tombol panel ----
+  document.querySelectorAll('#testPanel button').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      ensureAudio();
+      const act = btn.getAttribute('data-act');
+      const user = document.getElementById('inUser').value || 'Penonton';
+      const isi  = document.getElementById('inIsi').value || '';
+
+      if (act.startsWith('idle_')) { startIdle(act.replace('idle_','')); return; }
+      if (act === 'gift50') { efekUltah(); }
+      if (act === 'gift10') { efekDoa(); }
+
+      let tipe = 'chat', koin = 0, gift = isi;
+      if (act === 'join') tipe = 'join';
+      else if (act === 'follow') tipe = 'follow';
+      else if (act === 'joinclub') tipe = 'joinclub';
+      else if (act.startsWith('gift')) {
+        tipe = 'gift'; koin = parseInt(act.replace('gift',''), 10);
+        gift = 'Test Gift ' + koin;
+      }
+      try {
+        await fetch('/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tipe, user, isi: gift, koin })
+        });
+      } catch (e) {}
+    });
+  });
+
+  // ---- Ucapkan + LIP-SYNC ----
+  async function speakAudio(url, text) {
+    ensureAudio();
+    if (text) { subtitleEl.textContent = text; subtitleEl.classList.add('show'); }
+    stage.classList.add('talking');
+    if (currentSource) { try { currentSource.stop(); } catch (e) {} currentSource = null; }
+
+    try {
+      const resp = await fetch(url, { cache: 'no-store' });
+      const buf = await resp.arrayBuffer();
+      const audioBuf = await audioCtx.decodeAudioData(buf);
+      const src = audioCtx.createBufferSource();
+      src.buffer = audioBuf;
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.5;
+      dataArray = new Uint8Array(analyser.frequencyBinCount);
+      src.connect(analyser); analyser.connect(audioCtx.destination);
+      src.onended = () => {
+        stage.classList.remove('talking');
+        mouth.setAttribute('ry', '7'); mouth.setAttribute('rx', '42');
+        mouthInner.setAttribute('ry','3'); mouthInner.setAttribute('opacity','0.75');
+        lidah.setAttribute('opacity','0');
+        analyser = null; currentSource = null;
+      };
+      src.start(); currentSource = src;
+    } catch (e) { stage.classList.remove('talking'); }
+  }
+
+  // ---- Render ----
+  let phase = 0;
+  function render() {
+    const now = Date.now();
+    maybeIdle();
+
+    if (analyser && dataArray) {
+      analyser.getByteFrequencyData(dataArray);
+      let sum = 0, n = Math.floor(dataArray.length * 0.7);
+      for (let i = 0; i < n; i++) sum += dataArray[i];
+      const energy = Math.min((sum / n) / 60, 1);
+      phase += 0.35 + energy * 0.5;
+      const wobble = 0.85 + Math.sin(phase) * 0.15;
+      const open = energy * wobble;
+      const ry = 5 + open * 26, rx = 42 + open * 6;
+      mouth.setAttribute('ry', ry.toFixed(1));
+      mouth.setAttribute('rx', rx.toFixed(1));
+      mouthInner.setAttribute('ry', (ry*0.55).toFixed(1));
+      mouthInner.setAttribute('rx', (rx*0.7).toFixed(1));
+      mouthInner.setAttribute('opacity', (0.4 + open*0.5).toFixed(2));
+      lidah.setAttribute('cy', (300 + ry*0.55).toFixed(1));
+      lidah.setAttribute('ry', (3 + open*3).toFixed(1));
+      lidah.setAttribute('opacity', open > 0.35 ? '0.9' : '0');
+      // alis naik saat semangat
+      browL.setAttribute('y', (170 - open*6).toFixed(1));
+      browR.setAttribute('y', (170 - open*6).toFixed(1));
+
+      const nod = Math.sin(now/110) * (open*8);
+      const tilt = Math.sin(now/380) * (open*5);
+      head.setAttribute('transform', `translate(0, ${-nod}) rotate(${tilt}, 230, 340)`);
+      armL.setAttribute('transform', 'translate(0,0)');
+      armR.setAttribute('transform', 'translate(0,0)');
+    } else {
+      // idle: kepala & badan hidup
+      const t = now / 1000;
+      const idleRot = Math.sin(t/1.4) * 3;
+      head.setAttribute('transform', `rotate(${idleRot}, 230, 340)`);
+
+      if (idleAction === 'garuk') {
+        head.setAttribute('transform', `rotate(6, 230, 340)`);
+        armR.setAttribute('transform', `rotate(${20 + Math.sin(t*22)*18}, 320, 430)`);
+      } else if (idleAction === 'siul') {
+        mouth.setAttribute('ry', '5'); mouth.setAttribute('rx', '14');
+        head.setAttribute('transform', `rotate(${Math.sin(t*3)*2}, 230, 340)`);
+      } else if (idleAction === 'wave') {
+        armR.setAttribute('transform', `rotate(${-60 + Math.sin(t*8)*25}, 320, 430)`);
+      } else if (idleAction === 'fly') {
+        head.setAttribute('transform', `rotate(${Math.sin(t*6)*7}, 230, 340)`);
+        armR.setAttribute('transform', `rotate(${-40 + Math.sin(t*10)*20}, 320, 430)`);
+      } else {
+        armL.setAttribute('transform', 'translate(0,0)');
+        armR.setAttribute('transform', 'translate(0,0)');
+        mouth.setAttribute('ry', '7'); mouth.setAttribute('rx', '42');
+      }
+      if (idleAction !== 'siul') { mouth.setAttribute('ry','7'); mouth.setAttribute('rx','42'); }
+      browL.setAttribute('y','170'); browR.setAttribute('y','170');
+    }
+    requestAnimationFrame(render);
+  }
+  render();
+
+  // ---- Poll ----
+  let sudahSync = false;
+  async function poll() {
+    try {
+      const r = await fetch('/state?t=' + Date.now(), { cache: 'no-store' });
+      const s = await r.json();
+      if (s.token && s.token !== lastToken && s.audio) {
+        if (!sudahSync) {
+          // Sync pertama setelah page load: jangan ulang audio lama
+          lastToken = s.token;
+          sudahSync = true;
+        } else {
+          lastToken = s.token;
+          // efek otomatis dari tipe ucapan
+          if (s.effect === 'birthday') efekUltah();
+          else if (s.effect === 'doa') efekDoa();
+          speakAudio(s.audio, s.text);
+        }
+      }
+      if (!s.speaking) subtitleEl.classList.remove('show');
+    } catch (e) {}
+    setTimeout(poll, 200);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,1173 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:,">
+<title>Avatar VRM - Robot Host</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: transparent; overflow: hidden;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  #bg {
+    position: absolute; inset: 0; z-index: 0;
+    background: radial-gradient(circle at 50% 30%, #1b3a5c 0%, #0a1626 55%, #050b14 100%);
+  }
+  #glow {
+    position: absolute; left: 50%; top: 40%;
+    width: 900px; height: 900px; transform: translate(-50%,-50%);
+    background: radial-gradient(circle, rgba(0,229,255,0.2) 0%, rgba(0,229,255,0) 60%);
+    z-index: 1;
+  }
+  #canvasWrap { position: absolute; inset: 0; z-index: 2; }
+  canvas { display: block; }
+
+  #subtitle {
+    position: absolute; bottom: 24px; left: 50%;
+    transform: translateX(-50%); z-index: 12;
+    max-width: 84%; padding: 12px 28px;
+    background: rgba(0,18,28,0.78); color: #00e5ff;
+    font-size: 40px; font-weight: 700; text-align: center;
+    border-radius: 16px; text-shadow: 0 0 12px #00e5ff;
+    white-space: pre-wrap; opacity: 0; transition: opacity 0.25s;
+  }
+  #subtitle.show { opacity: 1; }
+  #nameTag {
+    position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+    z-index: 12; color: #7CFC00; font-size: 30px; font-weight: 700;
+    letter-spacing: 3px; text-shadow: 0 0 10px #7CFC00;
+  }
+  #creditTag {
+    position: absolute; top: 56px; left: 50%; transform: translateX(-50%);
+    z-index: 12; color: #c9d8e8; font-size: 13px; letter-spacing: 1px;
+    text-shadow: 0 1px 4px #000; opacity: .85;
+  }
+  #status {
+    position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+    z-index: 12; color: #ff9f43; font-size: 18px; font-weight: 600;
+  }
+  #startBtn {
+    position: absolute; inset: 0; z-index: 30;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.6); color: #00e5ff; font-size: 40px;
+    font-weight: 700; cursor: pointer; text-shadow: 0 0 12px #00e5ff;
+  }
+  #startBtn.hide { display: none; }
+  #testPanel {
+    position: absolute; top: 10px; right: 10px; z-index: 31;
+    background: rgba(0,0,0,0.78); padding: 12px; border-radius: 12px;
+    display: none; flex-direction: column; gap: 8px; width: 280px;
+    border: 1px solid #00e5ff55; max-height: 96vh; overflow-y: auto;
+  }
+  #testPanel.show { display: flex; }
+  #testPanel h3 { margin: 0 0 4px; color: #00e5ff; font-size: 15px; }
+  #testPanel input {
+    padding: 8px; border-radius: 8px; border: 1px solid #00e5ff55;
+    background: #03202b; color: #cfefff; font-size: 14px;
+  }
+  #testPanel .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  #testPanel button {
+    flex: 1; padding: 8px 6px; border-radius: 8px; cursor: pointer;
+    border: 1px solid #00e5ff77; background: #04303d; color: #00e5ff;
+    font-size: 13px; font-weight: 600;
+  }
+  #testPanel button:hover { background: #06556b; }
+
+  /* ---------- EFEK MERIAH ---------- */
+  #fxLayer { position: absolute; inset: 0; z-index: 8; pointer-events: none; overflow: hidden; }
+  .confetti {
+    position: absolute; width: 12px; height: 18px; top: -30px;
+    animation: fall linear forwards;
+  }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0.2; } }
+  .firework {
+    position: absolute; width: 6px; height: 6px; border-radius: 50%;
+    animation: burst 1.2s ease-out forwards;
+  }
+  @keyframes burst {
+    from { transform: scale(0.2); opacity: 1; }
+    to   { transform: scale(3.5); opacity: 0; }
+  }
+  #flash { position: absolute; inset: 0; background: #fff; opacity: 0; z-index: 9; pointer-events: none; }
+  #flash.on { animation: flashAnim 0.6s ease-out; }
+  @keyframes flashAnim { 0% { opacity: 0.85; } 100% { opacity: 0; } }
+  #banner {
+    position: absolute; top: 38%; left: 50%;
+    transform: translate(-50%,-50%) scale(0.6);
+    z-index: 10; opacity: 0; font-size: 72px; font-weight: 900; color: #fff;
+    text-shadow: 0 0 20px #ffd700, 0 0 40px #ff8a00;
+    pointer-events: none; white-space: nowrap;
+  }
+  #banner.on { animation: bannerPop 3s ease-out; }
+  @keyframes bannerPop {
+    0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.4); }
+    15%  { opacity: 1; transform: translate(-50%,-50%) scale(1.15); }
+    30%  { transform: translate(-50%,-50%) scale(1); }
+    80%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%,-50%) scale(1.1); }
+  }
+  #charSelect {
+    position: absolute; top: 10px; left: 10px; z-index: 31;
+    background: rgba(0,0,0,0.78); color: #00e5ff; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid #00e5ff55; font-size: 13px;
+    max-width: 260px;
+  }
+  #charSelect select {
+    margin-top: 6px; width: 100%; background: #03202b; color: #cfefff;
+    border: 1px solid #00e5ff55; border-radius: 6px; padding: 4px; font-size: 12px;
+  }
+</style>
+</head>
+<body>
+  <div id="bg"></div>
+  <div id="glow"></div>
+  <div id="canvasWrap"></div>
+  <div id="fxLayer"></div>
+  <div id="flash"></div>
+  <div id="banner"></div>
+  <div id="nameTag">ROBO</div>
+  <div id="creditTag"></div>
+  <div id="status">Memuat karakter 3D...</div>
+  <div id="subtitle"></div>
+  <div id="startBtn">Klik untuk Aktifkan Suara</div>
+
+  <div id="charSelect" style="display:none">
+    <div>Karakter:</div>
+    <select id="charList"></select>
+  </div>
+
+  <div id="testPanel">
+    <h3>Panel Test Interaksi</h3>
+    <input id="inUser" placeholder="Nama penonton" value="Budi">
+    <input id="inIsi" placeholder="Isi chat / nama gift" value="nama kamu siapa">
+    <div class="row">
+      <button data-act="join">Join</button>
+      <button data-act="chat">Chat</button>
+      <button data-act="follow">Follow</button>
+    </div>
+    <div class="row">
+      <button data-act="gift1">Gift 1</button>
+      <button data-act="gift5">Gift 5</button>
+      <button data-act="gift10">Gift 10</button>
+    </div>
+    <div class="row">
+      <button data-act="gift50">Gift 50</button>
+      <button data-act="joinclub">Khodam</button>
+    </div>
+  </div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "/vendor/three.module.js",
+    "three/addons/": "/vendor/three/addons/",
+    "@pixiv/three-vrm": "/vendor/three-vrm.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { VRMLoaderPlugin } from '@pixiv/three-vrm';
+
+const subtitleEl = document.getElementById('subtitle');
+const statusEl   = document.getElementById('status');
+const startBtn   = document.getElementById('startBtn');
+
+let audioCtx = null, analyser = null, dataArray = null;
+let currentSource = null, lastToken = 0;
+let currentVRM = null;
+
+// ---------- Renderer / Scene ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.95;
+document.getElementById('canvasWrap').appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(28, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 1.35, 2.1);
+camera.lookAt(0, 1.2, 0);
+window.ROBOT_CAMERA = camera;   // handle debugging / cek framing
+window.ROBOT_THREE = THREE;
+window.ROBOT_RENDERER = renderer;
+window.ROBOT_SCENE = scene;
+
+// Pencahayaan studio
+scene.add(new THREE.HemisphereLight(0x9fd8ff, 0x0a1626, 1.1));
+const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+keyLight.position.set(1.6, 2.6, 2.2);
+scene.add(keyLight);
+const rimLight = new THREE.DirectionalLight(0x00e5ff, 1.6);
+rimLight.position.set(-2.0, 1.4, -1.6);
+scene.add(rimLight);
+const fillLight = new THREE.PointLight(0x7cbcff, 1.2, 10);
+fillLight.position.set(-1.2, 1.0, 1.6);
+scene.add(fillLight);
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  // hitung ulang framing (ditunda sedikit supaya model siap & pose valid)
+  jadwalFrame = performance.now() + 120;
+});
+
+// ---------- Muat VRM ----------
+// three-vrm v3: pakai GLTFLoader + VRMLoaderPlugin
+const loader = new GLTFLoader();
+loader.register((parser) => new VRMLoaderPlugin(parser));
+
+const charList = document.getElementById('charList');
+const charSelect = document.getElementById('charSelect');
+let modelUrls = [];
+
+// ---------- Pose & Kamera ----------
+// Bounding box NYATA hasil skinning (Box3 biasa memakai geometri T-pose -> salah)
+function _bboxSkin(vrm) {
+  const box = new THREE.Box3();
+  const v = new THREE.Vector3();
+  vrm.scene.updateMatrixWorld(true);
+  vrm.scene.traverse((o) => {
+    if (!o.isSkinnedMesh || !o.skeleton) return;
+    const pos = o.geometry.getAttribute('position');
+    if (!pos) return;
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i);
+      o.applyBoneTransform(i, v);      // v -> ruang lokal mesh (sudah ikut skinning)
+      v.applyMatrix4(o.matrixWorld);   // -> ruang dunia
+      box.expandByPoint(v);
+    }
+  });
+  return box;
+}
+
+// Sudut "tangan turun" & "tangan terangkat" dicari otomatis supaya model
+// T-pose jadi A-pose (lebih natural & pakai ruang layar vertikal).
+const poseInfo = {};
+let skinBox = null;   // bbox hasil skinning (cache)
+
+function _cariSudut(upper, hand, vrm, hum, cariTinggi) {
+  const SUDUT = [0, 0.3, 0.6, 0.9, 1.2, 1.45, 1.57, 1.7,
+                -0.3, -0.6, -0.9, -1.2, -1.45, -1.57, -1.7];
+  let terbaik = 0, nilaiTerbaik = cariTinggi ? -Infinity : Infinity;
+  const p = new THREE.Vector3();
+  for (const z of SUDUT) {
+    upper.rotation.z = z;
+    hum.update();
+    vrm.scene.updateMatrixWorld(true);
+    hand.getWorldPosition(p);
+    const y = p.y;
+    if (cariTinggi ? (y > nilaiTerbaik) : (y < nilaiTerbaik)) {
+      nilaiTerbaik = y; terbaik = z;
+    }
+  }
+  return terbaik;
+}
+
+// Cari sudut lengan yang PAS puts tangannya di ketinggian tertentu
+function _cariSudutTarget(upper, hand, vrm, hum, targetY) {
+  let terbaik = 0, selisih = Infinity;
+  const p = new THREE.Vector3();
+  for (let z = -1.8; z <= 1.81; z += 0.1) {
+    upper.rotation.z = z;
+    hum.update();
+    vrm.scene.updateMatrixWorld(true);
+    hand.getWorldPosition(p);
+    const d = Math.abs(p.y - targetY);
+    if (d < selisih) { selisih = d; terbaik = +z.toFixed(3); }
+  }
+  return terbaik;
+}
+
+// Cari sudut SIKU yang menaruh tangan di ketinggian tertentu.
+// CATATAN: sumbu lentur siku di VRM (T-pose) adalah sumbu Z bone.
+// Setelah lengan diturunkan (A-pose), sumbu Z tetap towards depan/atas,
+// jadi siku bisa dilipat ke atas. Sumbu X hanya "memutar" lengan (tidak berguna).
+// `arah` = arah lipatan (harus ke arah dalam tubuh, cermin kiri/kanan).
+function _cariSiku(upper, elbow, hand, vrm, hum, targetY, armZ, arah) {
+  if (!elbow || !hand) return 0;
+  upper.rotation.z = armZ;
+  const s = arah || 1;
+  let terbaik = 0, selisih = Infinity;
+  const p = new THREE.Vector3();
+  for (let k = 0.05; k <= 2.61; k += 0.1) {
+    const z = +(s * k).toFixed(2);
+    elbow.rotation.z = z;
+    elbow.rotation.x = 0;
+    hum.update();
+    vrm.scene.updateMatrixWorld(true);
+    hand.getWorldPosition(p);
+    const d = Math.abs(p.y - targetY);
+    if (d < selisih) { selisih = d; terbaik = z; }
+  }
+  elbow.rotation.z = terbaik;
+  return terbaik;
+}
+
+function poseAwal(vrm) {
+  const hum = vrm.humanoid;
+  if (!hum) return;
+  vrm.scene.updateMatrixWorld(true);
+
+  const p = new THREE.Vector3();
+  const headB = hum.getNormalizedBoneNode('head');
+  let headY = 1.45;
+  if (headB) { headB.getWorldPosition(p); headY = p.y; }
+
+  for (const side of ['left', 'right']) {
+    const upper = hum.getNormalizedBoneNode(side + 'UpperArm');
+    const lower = hum.getNormalizedBoneNode(side + 'LowerArm');
+    const hand  = hum.getNormalizedBoneNode(side + 'Hand');
+    const shB   = hum.getNormalizedBoneNode(side + 'Shoulder');
+    if (!upper) continue;
+
+    let zDown = 0, zUp = 0, zWave = 0, elbowWave = 0;
+    let shoulderY = 1.2;
+    if (shB) { shB.getWorldPosition(p); shoulderY = p.y; }
+    if (hand) {
+      zDown = _cariSudut(upper, hand, vrm, hum, false);   // tangan terendah
+      zUp   = _cariSudut(upper, hand, vrm, hum, true);    // tangan tertinggi
+      // Ketinggian "melambai": tangan di area dada
+      const targetWave = shoulderY + 0.30 * Math.max(0.05, headY - shoulderY);
+      zWave = _cariSudutTarget(upper, hand, vrm, hum, targetWave);
+    }
+    upper.rotation.z = zDown;
+
+    // Siku lurus, tangan relax
+    if (lower) { lower.rotation.x = 0; lower.rotation.z = 0; }
+    if (hand)  hand.rotation.z = (side === 'left' ? 0.18 : -0.18);
+    const baseElbowZ = 0;
+    const baseHandZ = hand ? hand.rotation.z : 0;
+
+    // Gestur "melambai": lengan tetap menggantung, SIKU dilipat (sumbu Z)
+    // supaya tangan naik ke area dada tanpa melebar horizontal.
+    // Arah lipatan = arah zDown => siku melipat ke arah dalam tubuh.
+    if (lower && hand) {
+      elbowWave = _cariSiku(upper, lower, hand, vrm, hum,
+                            shoulderY - 0.16, zDown, (Math.sign(zDown) || 1));
+    }
+
+    // kembalikan lengan ke A-pose (pencarian di atas mengubah sudut)
+    upper.rotation.z = zDown;
+    if (lower) lower.rotation.z = baseElbowZ;
+    if (hand)  hand.rotation.z = baseHandZ;
+
+    poseInfo[side] = {
+      zDown: zDown, zUp: zUp, zWave: zWave, elbowWave: elbowWave,
+      baseElbowZ: baseElbowZ, baseHandZ: baseHandZ,
+      elbowSign: (elbowWave >= 0 ? 1 : -1)
+    };
+  }
+
+  // Kaki sedikit opened (bukan rapat)
+  for (const side of ['left', 'right']) {
+    const leg = hum.getNormalizedBoneNode(side + 'UpperLeg');
+    if (leg) leg.rotation.z = (side === 'left' ? 0.09 : -0.09);
+  }
+
+  hum.update();
+  vrm.scene.updateMatrixWorld(true);
+  skinBox = _bboxSkin(vrm);   // cache bbox hasil skinning
+}
+
+// ---------- Framing kamera berbasis siluet ----------
+// Render karakter ke texture transparan, cari bbox pikselnya, lalu atur
+// kamera supaya karakter pas di layar (portrait HP maupun landscape).
+let _fitRT = null, _fitBuf = null;
+
+function _silhouette() {
+  const aspect = Math.max(camera.aspect, 0.2);
+  const W = 200;
+  const H = Math.max(80, Math.round(W / aspect));
+  if (!_fitRT || _fitRT.width !== W || _fitRT.height !== H) {
+    if (_fitRT) _fitRT.dispose();
+    _fitRT = new THREE.WebGLRenderTarget(W, H, {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat,
+      type: THREE.UnsignedByteType
+    });
+    _fitBuf = new Uint8Array(W * H * 4);
+  }
+
+  const oldBg = scene.background;
+  const oldAlpha = renderer.getClearAlpha();
+  scene.background = new THREE.Color(0x000000);
+  renderer.setRenderTarget(_fitRT);
+  renderer.setClearColor(0x000000, 0);
+  renderer.clear();
+  renderer.render(scene, camera);
+  renderer.readRenderTargetPixels(_fitRT, 0, 0, W, H, _fitBuf);
+  renderer.setRenderTarget(null);
+  renderer.setClearAlpha(oldAlpha);
+  scene.background = oldBg;
+
+  let minX = W, maxX = -1, minY = H, maxY = -1;
+  for (let y = 0; y < H; y++) {
+    const row = y * W * 4;
+    for (let x = 0; x < W; x++) {
+      if (_fitBuf[row + x * 4 + 3] > 12) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0) return null;               // karakter tidak terlihat
+  const nx = (x) => ((x + 0.5) / W) * 2 - 1;
+  const ny = (y) => ((y + 0.5) / H) * 2 - 1;
+  return { minX: nx(minX), maxX: nx(maxX), minY: ny(minY), maxY: ny(maxY) };
+}
+
+// Paksa lengan ke A-pose (rest) lalu kembalikan pose aslinya.
+// Dipakai saat menghitung framing supaya gestur (mis. melambai) tidak
+// menggeser karakter ke samping.
+// mode: 'rest' (A-pose) | 'wave' (siku dilipat) | 'point' (lengan ke depan)
+// handY = sudut pergelangan tangan (untuk mengukur jangkauan kibasan tangan)
+function _poseRest(mode = 'rest', handY = 0) {
+  const hum = currentVRM && currentVRM.humanoid;
+  if (!hum) return null;
+  const saved = [];
+  for (const side of ['left', 'right']) {
+    for (const bn of [side + 'UpperArm', side + 'LowerArm', side + 'Hand']) {
+      const b = hum.getNormalizedBoneNode(bn);
+      if (b) saved.push({ b, x: b.rotation.x, y: b.rotation.y, z: b.rotation.z });
+    }
+  }
+  for (const side of ['left', 'right']) {
+    const info = poseInfo[side];
+    if (!info) continue;
+    const arm = hum.getNormalizedBoneNode(side + 'UpperArm');
+    const elb = hum.getNormalizedBoneNode(side + 'LowerArm');
+    const hnd = hum.getNormalizedBoneNode(side + 'Hand');
+    if (arm) {
+      arm.rotation.x = 0; arm.rotation.y = 0; arm.rotation.z = info.zDown;
+    }
+    if (elb) {
+      elb.rotation.x = 0; elb.rotation.y = 0;
+      elb.rotation.z = (mode === 'wave') ? info.elbowWave : info.baseElbowZ;
+    }
+    if (hnd) { hnd.rotation.x = 0; hnd.rotation.y = handY; hnd.rotation.z = info.baseHandZ; }
+    if (mode === 'point' && arm) {
+      arm.rotation.x = -0.70;                          // lengan ke arah kamera
+      if (elb) elb.rotation.z = 0;                     // siku lurus
+    }
+  }
+  hum.update();
+  currentVRM.scene.updateMatrixWorld(true);
+  return () => {
+    for (const s of saved) { s.b.rotation.x = s.x; s.b.rotation.y = s.y; s.b.rotation.z = s.z; }
+    hum.update();
+    currentVRM.scene.updateMatrixWorld(true);
+  };
+}
+
+window.ROBOT_SILHOUETTE = _silhouette;
+window.ROBOT_POSEINFO = poseInfo;
+window.ROBOT_FRAME = (m) => frameCamera(m);
+// hook debug: paksa gestur tertentu untuk pengujian
+window.ROBOT_GESTURE = (type, side, dur) => {
+  gesture = { type: type, side: side || 'right', t0: timer.getElapsed(), dur: dur || 2.5 };
+  nextGestureAt = timer.getElapsed() + (dur || 2.5) + 0.1;
+  return gesture;
+};
+// hook debug: gestur yang sedang aktif (untuk cek gestur dari server)
+window.ROBOT_GESTURE_STATE = () => gesture ? {
+  type: gesture.type, side: gesture.side,
+  sisa: +Math.max(0, (gesture.dur - (timer.getElapsed() - gesture.t0))).toFixed(2)
+} : null;
+function frameCamera(margin = 1.08) {
+  if (!currentVRM) return;
+  const aspect = Math.max(camera.aspect, 0.2);
+  camera.aspect = aspect;
+  camera.updateProjectionMatrix();
+
+  const hum = currentVRM.humanoid;
+  const fovV = THREE.MathUtils.degToRad(camera.fov);
+
+  const t = Math.tan(fovV / 2);
+
+  // Mode framing: default setengah badan (pinggang/ke atas)
+  const urlp = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams('');
+  const HALF_BODY = urlp.get('half') !== '0'; // default setengah badan
+
+  // 1) bbox A-pose -> perkiraan awal jarak & titik tengah vertikal
+  const restore = _poseRest('rest');
+  const box = _bboxSkin(currentVRM);
+  if (restore) restore();
+
+  // 2) sumbu tubuh (bukan pusat siluet) supaya wajah karakter tetap di tengah
+  const p = new THREE.Vector3();
+  let bodyX = (box.min.x + box.max.x) / 2;
+  if (hum) {
+    const lSh = hum.getNormalizedBoneNode('leftShoulder');
+    const rSh = hum.getNormalizedBoneNode('rightShoulder');
+    if (lSh && rSh) {
+      lSh.getWorldPosition(p); const lx = p.x;
+      rSh.getWorldPosition(p); const rx = p.x;
+      bodyX = (lx + rx) / 2;
+    }
+  }
+  const tx = bodyX;
+  let ty = (box.min.y + box.max.y) / 2;
+  const tz = 0;
+
+  // Titik referensi untuk framing setengah badan
+  let headY = box.max.y;
+  let hipsY = box.min.y + 0.35 * (box.max.y - box.min.y);
+  if (hum) {
+    const headB = hum.getNormalizedBoneNode('head');
+    const hipsB = hum.getNormalizedBoneNode('hips');
+    if (headB) { headB.getWorldPosition(p); headY = p.y; }
+    if (hipsB) { hipsB.getWorldPosition(p); hipsY = p.y; }
+  }
+  if (HALF_BODY) {
+    // Fokus ke dada/torso atas (antara pinggang dan kepala) agar pinggang ke atas tetap utuh
+    ty = hipsY + (headY - hipsY) * 0.52;
+  }
+
+  // 3) jarak awal dari bbox (tinggi & lebar harus muat)
+  const halfUp = Math.max(0.01, box.max.y - ty);
+  const halfDn = Math.max(0.01, ty - box.min.y);
+  const halfRt = Math.max(0.01, box.max.x - tx);
+  const halfLf = Math.max(0.01, tx - box.min.x);
+  const dV = Math.max(halfUp, halfDn) / t;
+  const dH = Math.max(halfRt, halfLf) / (t * aspect);
+  let dist = Math.max(dV, dH) * (HALF_BODY ? margin * 0.78 : margin);
+
+  // 4) UKUR SILUET BETUL-BETUL (render sungguhan) untuk beberapa pose,
+  //    lalu sesuaikan jarak sampai seluruh karakter muat di frame.
+  //    Ini penting karena animasi gestur bisa lebih lebar dari A-pose.
+  const TARGET = HALF_BODY ? 0.92 : 0.93;              // setengah badan lebih besar di frame
+  const POSES = [['rest', 0], ['wave', 0], ['wave', 0.45], ['wave', -0.45], ['point', 0]];
+  let ndcMax = 0, iterasi = 0;
+  for (let i = 0; i < 6; i++) {
+    camera.position.set(tx, ty, tz + dist);
+    camera.lookAt(tx, ty, tz);
+    camera.updateMatrixWorld(true);
+    // Hitung garis crop pinggang dalam NDC untuk mode setengah badan
+    let cropMinYNdc = -2;
+    if (HALF_BODY && hum) {
+      const hipsB2 = hum.getNormalizedBoneNode('hips');
+      if (hipsB2) {
+        hipsB2.getWorldPosition(p);
+        p.project(camera);
+        cropMinYNdc = p.y + 0.01;
+      }
+    }
+    let ratio = 0;
+    for (const [mode, hy] of POSES) {
+      const r = _poseRest(mode, hy);
+      const s = _silhouette();
+      if (r) r();
+      if (!s) continue;
+      let h = Math.max(Math.abs(s.minX), Math.abs(s.maxX), Math.abs(s.minY), Math.abs(s.maxY));
+      if (HALF_BODY && cropMinYNdc > -1.5) {
+        const effMinY = Math.max(s.minY, cropMinYNdc);
+        const effMaxY = s.maxY;
+        h = Math.max(Math.abs(s.minX), Math.abs(s.maxX), Math.abs(effMinY), Math.abs(effMaxY));
+      }
+      if (h > 0.001) ratio = Math.max(ratio, h / TARGET);
+    }
+    iterasi = i + 1;
+    ndcMax = ratio * TARGET;
+    if (!ratio) break;
+    dist *= ratio;
+    if (Math.abs(ratio - 1) < 0.0015) break;
+  }
+
+  if (HALF_BODY) {
+    // Paksa framing setengah badan: zoom lebih dekat, fokus ke dada/leher
+    camera.position.set(tx, ty + 0.05, tz + dist * 0.72);
+    camera.lookAt(tx, ty + 0.08, tz);
+  } else {
+    camera.position.set(tx, ty, tz + dist);
+    camera.lookAt(tx, ty, tz);
+  }
+  camera.updateMatrixWorld(true);
+  camera.userData.target = new THREE.Vector3(tx, ty + (HALF_BODY ? 0.08 : 0), tz);
+  camera.userData.dist = HALF_BODY ? (dist * 0.72) : dist;
+  if (HALF_BODY) camera.userData.halfBody = true; else delete camera.userData.halfBody;
+  camera.userData.fitLog = [{
+    dist: +dist.toFixed(3),
+    dV: +dV.toFixed(3), dH: +dH.toFixed(3),
+    tinggi: +(box.max.y - box.min.y).toFixed(3),
+    lebar: +(box.max.x - box.min.x).toFixed(3),
+    halfL: +halfLf.toFixed(3), halfR: +halfRt.toFixed(3),
+    iterasi: iterasi, ndcMax: +ndcMax.toFixed(3)
+  }];
+}
+
+function pasangVRM(vrm) {
+  currentVRM = vrm;
+  window.ROBOT_VRM = vrm;   // handle untuk inspeksi dari console / debugging
+  const name = vrm.meta?.name || 'Karakter 3D';
+  document.getElementById('nameTag').textContent = name;
+  // Kredit pencipta (wajib untuk sebagian lisensi, mis. VRM Public License 1.0)
+  const creditTagEl = document.getElementById('creditTag');
+  if (creditTagEl) {
+    creditTagEl.textContent = '';
+    creditTagEl.style.display = 'none';
+  }
+  if (statusEl) {
+    statusEl.textContent = '';
+    statusEl.style.display = 'none';
+  }
+
+  // Skala: tinggi karakter jadi 1.55 unit (dihitung dari bbox hasil skinning)
+  vrm.scene.rotation.y = 0;
+  scene.add(vrm.scene);
+  vrm.scene.updateMatrixWorld(true);
+
+  // A-pose (tangan turun) supaya model ramping & pas layar vertikal
+  poseAwal(vrm);
+  hideRoboArms(vrm);
+
+  // Skala & posisi:
+  //  - tinggi  -> 1.55 unit (dihitung dari bbox hasil skinning)
+  //  - sumbu X -> pinggang (bone hips), bukan bbox geometri (bisa geser karena aksesori)
+  //  - sumbu Y -> telapak kaki rata di 0
+  const hum = vrm.humanoid;
+  const p = new THREE.Vector3();
+  const boxRaw = (skinBox && !skinBox.isEmpty()) ? skinBox : _bboxSkin(vrm);
+  const sizeY = Math.max(0.1, boxRaw.getSize(new THREE.Vector3()).y);
+  const scale = 1.55 / sizeY;
+  vrm.scene.scale.setScalar(scale);
+  vrm.scene.updateMatrixWorld(true);
+
+  // geser supaya pinggang di x=0 dan kaki di y=0
+  if (hum) {
+    const hips = hum.getNormalizedBoneNode('hips');
+    if (hips) { hips.getWorldPosition(p); vrm.scene.position.x -= p.x; }
+  }
+  vrm.scene.updateMatrixWorld(true);
+  const boxNow = _bboxSkin(vrm);
+  if (!boxNow.isEmpty()) vrm.scene.position.y -= boxNow.min.y;
+  vrm.scene.updateMatrixWorld(true);
+
+  // Hilangkan aksesori robo_arm setelah pose awal
+  hideRoboArms(vrm);
+
+  // PENTING: jangan hitung framing di sini. Saat model baru dimuat, skeleton
+  // belum sepenuhnya siap sehingga pengukuran hasil skinning masih memakai
+  // pose T-pose (lebar karakter jadi 2-3x lebih lebar). Framing dihitung
+  // ulang di loop animasi setelah model siap (lihat animate()).
+  jadwalFrame = performance.now() + 350;
+}
+
+  async function loadVRM(url) {
+    try {
+      statusEl.textContent = 'Memuat ' + url + '...';
+      if (currentVRM) {
+        scene.remove(currentVRM.scene);
+        currentVRM.scene.traverse((o) => {
+          if (o.geometry) o.geometry.dispose();
+        });
+        currentVRM = null;
+      }
+      const ext = url.toLowerCase().split('?')[0];
+      const gltf = await loader.loadAsync(url);
+      if (ext.endsWith('.vrm')) {
+        const vrm = gltf.userData.vrm;
+        if (!vrm) throw new Error('File bukan VRM yang valid');
+        pasangVRM(vrm);
+      } else {
+        // GLB/GLTF biasa
+        const model = gltf.scene;
+        // Coba cari humanoid
+        model.traverse((o) => {
+          if (o.isSkinnedMesh) {
+            o.frustumCulled = false;
+          }
+        });
+        // Buat objek mirip VRM biar kompatibel
+        const fakeVrm = {
+          scene: model,
+          humanoid: {
+            getNormalizedBoneNode: (name) => {
+              // Mapping umum Mixamo/GLB
+              const map = {
+                hips: ['hips', 'mixamorigHips', 'pelvis'],
+                spine: ['spine', 'mixamorigSpine'],
+                chest: ['chest', 'spine1', 'mixamorigSpine1'],
+                neck: ['neck', 'mixamorigNeck'],
+                head: ['head', 'mixamorigHead'],
+                leftShoulder: ['leftshoulder', 'mixamorigLeftShoulder'],
+                rightShoulder: ['rightshoulder', 'mixamorigRightShoulder'],
+                leftUpperArm: ['leftupperarm', 'leftarm', 'mixamorigLeftArm'],
+                rightUpperArm: ['rightupperarm', 'rightarm', 'mixamorigRightArm'],
+                leftLowerArm: ['leftlowerarm', 'leftforearm', 'mixamorigLeftForeArm'],
+                rightLowerArm: ['rightlowerarm', 'rightforearm', 'mixamorigRightForeArm'],
+                leftHand: ['lefthand', 'mixamorigLeftHand'],
+                rightHand: ['righthand', 'mixamorigRightHand'],
+                leftUpperLeg: ['leftupleg', 'leftthigh', 'mixamorigLeftUpLeg'],
+                rightUpperLeg: ['rightupleg', 'rightthigh', 'mixamorigRightUpLeg'],
+                leftLowerLeg: ['leftlowerleg', 'leftleg', 'mixamorigLeftLeg'],
+                rightLowerLeg: ['rightlowerleg', 'rightleg', 'mixamorigRightLeg'],
+                leftFoot: ['leftfoot', 'mixamorigLeftFoot'],
+                rightFoot: ['rightfoot', 'mixamorigRightFoot']
+              };
+              const keys = map[name] || [name.toLowerCase()];
+              let found = null;
+              model.traverse((o) => {
+                if (found) return;
+                const n = (o.name || '').toLowerCase();
+                if (keys.some(k => n === k || n.includes(k))) found = o;
+              });
+              // kalau ga ketemu, coba cari skinned mesh
+              if (!found) {
+                model.traverse((o) => {
+                  if (found || !o.isBone) return;
+                  const n = (o.name || '').toLowerCase();
+                  if (keys.some(k => n.includes(k))) found = o;
+                });
+              }
+              return found;
+            },
+            update: () => {}
+          },
+          expressionManager: null,
+          meta: { name: url.split('/').pop().replace(/\.[^.]+$/, '') }
+        };
+        window.ROBOT_VRM = fakeVrm;
+        pasangVRM(fakeVrm);
+      }
+    } catch (e) {
+      console.error('Gagal memuat model:', e);
+      statusEl.textContent = 'Gagal memuat model: ' + e.message;
+      statusEl.style.color = '#ff6b6b';
+    }
+  }
+
+  // Sembunyikan aksesori robo_arm di belakang tubuh
+  function hideRoboArms(vrm) {
+    if (!vrm || !vrm.scene) return;
+    vrm.scene.traverse((o) => {
+      if (!o.isMesh) return;
+      if (/robo_arm/i.test(o.name)) {
+        o.visible = false;
+      }
+    });
+  }
+  window.ROBOT_HIDE_ARMS = hideRoboArms;
+
+  // Ambil daftar file .vrm dari server, muat yang pertama
+  async function initAvatar() {
+  try {
+    const r = await fetch('/avatar/list', { cache: 'no-store' });
+    const data = await r.json();
+    modelUrls = data.models || [];
+    if (modelUrls.length > 0) {
+      // selector karakter kalau ada lebih dari 1
+      if (modelUrls.length > 1) {
+        charSelect.style.display = 'block';
+        charList.innerHTML = '';
+        modelUrls.forEach(m => {
+          const o = document.createElement('option');
+          o.value = m; o.textContent = m;
+          charList.appendChild(o);
+        });
+        charList.addEventListener('change', () => {
+          loadVRM('/avatar/' + encodeURIComponent(charList.value));
+        });
+      }
+      await loadVRM('/avatar/' + encodeURIComponent(modelUrls[0]));
+    } else {
+      statusEl.textContent = 'Belum ada file .vrm di folder avatar/';
+      statusEl.style.color = '#ff6b6b';
+    }
+  } catch (e) {
+    statusEl.textContent = 'Gagal contacting server: ' + e.message;
+  }
+}
+initAvatar();
+
+// ---------- EFEK MERIAH ----------
+const fxLayer = document.getElementById('fxLayer');
+const flash = document.getElementById('flash');
+const banner = document.getElementById('banner');
+
+function burstConfetti(n, colors) {
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = (Math.random() * 100) + '%';
+    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+    c.style.animationDuration = (2 + Math.random() * 2) + 's';
+    c.style.animationDelay = (Math.random() * 0.4) + 's';
+    fxLayer.appendChild(c);
+    setTimeout(() => c.remove(), 5000);
+  }
+}
+function fireworkAt(x, y, color) {
+  for (let i = 0; i < 24; i++) {
+    const f = document.createElement('div');
+    f.className = 'firework';
+    f.style.left = x + 'px'; f.style.top = y + 'px';
+    f.style.background = color;
+    const ang = (Math.PI * 2 / 24) * i;
+    const dist = 40 + Math.random() * 80;
+    f.animate([
+      { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: `translate(${Math.cos(ang)*dist}px, ${Math.sin(ang)*dist}px) scale(0.3)`, opacity: 0 }
+    ], { duration: 900 + Math.random()*500, easing: 'ease-out' });
+    fxLayer.appendChild(f);
+    setTimeout(() => f.remove(), 1600);
+  }
+}
+function showBanner(text, color) {
+  banner.textContent = text;
+  banner.style.textShadow = `0 0 20px ${color}, 0 0 40px ${color}`;
+  banner.classList.remove('on'); void banner.offsetWidth; banner.classList.add('on');
+}
+function doFlash() { flash.classList.remove('on'); void flash.offsetWidth; flash.classList.add('on'); }
+
+function efekDoa() {
+  burstConfetti(30, ['#7cd8ff', '#a0e0ff', '#ffffff']);
+  showBanner('AMIN', '#7cd8ff');
+}
+function efekUltah() {
+  burstConfetti(120, ['#ffd700', '#ff5c8a', '#00e5ff', '#7CFC00', '#ff8a00']);
+  const W = window.innerWidth, H = window.innerHeight;
+  for (let k = 0; k < 6; k++) {
+    setTimeout(() => {
+      fireworkAt(Math.random()*W*0.8 + W*0.1, Math.random()*H*0.5 + H*0.1,
+        ['#ffd700','#ff5c8a','#00e5ff','#7CFC00'][k % 4]);
+    }, k * 220);
+  }
+  doFlash();
+  showBanner('🎉 SELAMAT ULANG TAHUN 🎉', '#ffd700');
+}
+
+// ---------- Audio ----------
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+async function speakAudio(url, text) {
+  try { ensureAudio(); } catch (e) { console.warn('Audio tidak aktif:', e); }
+  if (text) { subtitleEl.textContent = text; subtitleEl.classList.add('show'); }
+  if (currentSource) { try { currentSource.stop(); } catch (e) {} currentSource = null; }
+
+  try {
+    const resp = await fetch(url, { cache: 'no-store' });
+    const buf = await resp.arrayBuffer();
+    const audioBuf = await audioCtx.decodeAudioData(buf);
+    const src = audioCtx.createBufferSource();
+    src.buffer = audioBuf;
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    analyser.smoothingTimeConstant = 0.4;
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+    src.connect(analyser); analyser.connect(audioCtx.destination);
+    src.onended = () => {
+      analyser = null; currentSource = null;
+      subtitleEl.classList.remove('show');
+    };
+    src.start(); currentSource = src;
+  } catch (e) { console.error(e); }
+}
+
+startBtn.addEventListener('click', async () => {
+  // Audio boleh gagal / macet (mis. tidak ada perangkat audio).
+  // Poll server HARUS tetap jalan supaya avatar tetap sinkron & bereaksi.
+  try { ensureAudio(); } catch (e) { console.warn('Audio tidak aktif:', e); }
+  startBtn.classList.add('hide');
+  document.getElementById('testPanel').classList.add('show');
+  poll();
+  try { audioCtx.resume(); } catch (e) {}
+  speakAudio('/audio/opening.mp3', 'Sistem aktif. Halo, aku siap!');
+});
+
+document.querySelectorAll('#testPanel button').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    ensureAudio();
+    const act = btn.getAttribute('data-act');
+    const user = document.getElementById('inUser').value || 'Penonton';
+    const isi  = document.getElementById('inIsi').value || '';
+    let tipe = 'chat', koin = 0, gift = isi;
+    if (act === 'join') tipe = 'join';
+    else if (act === 'follow') tipe = 'follow';
+    else if (act === 'joinclub') tipe = 'joinclub';
+    else if (act.startsWith('gift')) {
+      tipe = 'gift'; koin = parseInt(act.replace('gift',''), 10);
+      gift = 'Test Gift ' + koin;
+    }
+    try {
+      await fetch('/trigger', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipe, user, isi: gift, koin })
+      });
+    } catch (e) {}
+  });
+});
+
+// ---------- Lip-sync & gerak ----------
+const timer = new THREE.Timer();
+let blinkStart = -1, blinkEnd = -1, blinkNextAt = 1.5;
+let idleSeed = Math.random() * 100;
+let talkAmount = 0;
+let moodName = '';       // mood dari server: happy | talk | idle
+let moodValue = 0;
+let gesture = null;      // { type, side, t0, dur }
+let nextGestureAt = 4;   // gestur pertama agak cepat supaya langsung terlihat
+let jadwalFrame = 0;     // waktu (ms) hitung ulang framing kamera; 0 = tidak
+let fitFrame = 0;        // counter frame untuk auto-fit kontinu
+let fitMax = 0;          // NDC terbesar yg pernah diukur (meredup pelan)
+
+function setExpression(name, value) {
+  if (!currentVRM) return;
+  const e = currentVRM.expressionManager;
+  if (!e) return;
+  e.setValue(name, value > 0 ? value : 0);
+}
+
+function animate() {
+  timer.update();
+  const dt = timer.getDelta();
+  const t = timer.getElapsed();
+
+  if (currentVRM) {
+    currentVRM.update(dt);
+
+    // --- Lip-sync: analisis audio -> ekspresi mulut ---
+    let energy = 0, f1 = 0, f2 = 0;
+    if (analyser && dataArray) {
+      analyser.getByteFrequencyData(dataArray);
+      let sum = 0;
+      const n = Math.floor(dataArray.length * 0.7);
+      for (let i = 0; i < n; i++) sum += dataArray[i];
+      energy = Math.min((sum / n) / 55, 1);
+
+      // Formant: F1 (rendah) & F2 (menengah) -> bentuk mulut
+      let lo = 0, hi = 0, lc = 0, hc = 0;
+      for (let i = 2; i < 14; i++) { lo += dataArray[i]; lc++; }
+      for (let i = 14; i < 34; i++) { hi += dataArray[i]; hc++; }
+      f1 = lc ? lo / lc : 0;
+      f2 = hc ? hi / hc : 0;
+    }
+    // time constant ~0.08 detik, bebas dari frame rate
+    talkAmount += (energy - talkAmount) * (1 - Math.exp(-dt * 12));
+
+    if (analyser) {
+      // aa = mulut terbuka (utama)
+      const open = Math.min(0.9, talkAmount * 1.25);
+      setExpression('aa', open);
+
+      // Bentuk vokal: ih (lebar/senyum), oh (bulat), ee (pipit), ou (membulat)
+      const spread = (f2 - f1) / 90;               // >0 = vokal lebar
+      setExpression('ih', Math.max(0, spread) * open * 0.75);
+      setExpression('ee', Math.max(0, spread) * open * 0.45);
+      setExpression('oh', Math.max(0, -spread) * open * 0.75);
+      setExpression('ou', Math.max(0, -spread) * open * 0.35);
+    } else {
+      setExpression('aa', 0);
+      setExpression('ih', 0);
+      setExpression('ee', 0);
+      setExpression('oh', 0);
+      setExpression('ou', 0);
+    }
+
+    // --- Mood (dari server) ---
+    const targetMood = (moodName === 'happy') ? 0.55 : 0;
+    const kMood = 1 - Math.exp(-dt * 5);          // time constant ~0.2 detik
+    moodValue += (targetMood - moodValue) * kMood;
+    if (moodValue > 0.01) {
+      setExpression('happy', moodValue);
+    } else {
+      setExpression('happy', 0);
+    }
+
+    // --- Blink (frame-rate independent, berbasis waktu) ---
+    if (t >= blinkNextAt) {
+      blinkStart = t;
+      blinkEnd = t + 0.16;                        // durasi kedip 160 ms
+      blinkNextAt = t + 2.5 + Math.random() * 4;  // kedip berikutnya 2.5-6.5 detik
+    }
+    if (t < blinkEnd) {
+      const p = (t - blinkStart) / 0.16;          // 0 -> 1
+      // Lantai 0.4 supaya kedip tetap TERLIHAT walau FPS rendah
+      // (di frameRate rendah, jendela 160ms bisa terlewat antar frame)
+      setExpression('blink', Math.max(0.4, Math.sin(p * Math.PI)));
+    } else {
+      setExpression('blink', 0);
+    }
+
+    // --- Idle motion: kepala, badan, tangan ---
+    const hum = currentVRM.humanoid;
+    if (hum) {
+      const head = hum.getNormalizedBoneNode('head');
+      const neck = hum.getNormalizedBoneNode('neck');
+      const spine = hum.getNormalizedBoneNode('spine');
+      const chest = hum.getNormalizedBoneNode('upperChest');
+
+      // Kepala: menoleh + mengangguk (lebih hidup)
+      if (head) {
+        const s = Math.sin(t * 0.7 + idleSeed);
+        const s2 = Math.sin(t * 1.3 + idleSeed);
+        const nod = Math.sin(t * 0.45 + idleSeed * 2);
+        head.rotation.x = nod * THREE.MathUtils.degToRad(7) + talkAmount * 0.03;
+        head.rotation.y = s * THREE.MathUtils.degToRad(10);
+        head.rotation.z = s2 * THREE.MathUtils.degToRad(5);
+      }
+      if (neck) {
+        neck.rotation.y = Math.sin(t * 0.7 + idleSeed) * 0.05;
+        neck.rotation.x = Math.sin(t * 0.5 + idleSeed) * 0.03;
+      }
+      if (spine) {
+        spine.rotation.y = Math.sin(t * 0.5 + idleSeed) * 0.05;
+        spine.rotation.z = Math.sin(t * 0.33 + idleSeed) * 0.03;
+      }
+      // "Napas" (pernapasan) di dada
+      if (chest) {
+        chest.rotation.x = Math.sin(t * 1.1 + idleSeed) * 0.012;
+      }
+
+      // ===== TANGAN & LENGAN =====
+      const lArm = hum.getNormalizedBoneNode('leftUpperArm');
+      const rArm = hum.getNormalizedBoneNode('rightUpperArm');
+      const lElbow = hum.getNormalizedBoneNode('leftLowerArm');
+      const rElbow = hum.getNormalizedBoneNode('rightLowerArm');
+      const lHand = hum.getNormalizedBoneNode('leftHand');
+      const rHand = hum.getNormalizedBoneNode('rightHand');
+
+      // Gestur aktif?
+      if (t >= nextGestureAt) {
+        const r = Math.random();
+        gesture = r < 0.42 ? { type: 'wave', side: 'right' }
+               : r < 0.70 ? { type: 'wave', side: 'left' }
+               : r < 0.86 ? { type: 'point', side: 'right' }
+                          : { type: 'hand', side: 'left' };
+        gesture.t0 = t;
+        gesture.dur = gesture.type === 'wave' ? 2.8 : 2.0;
+        nextGestureAt = t + 7 + Math.random() * 7;
+      }
+
+      const g = gesture;
+      const gActive = g && (t - g.t0) < g.dur;
+      const gP = gActive ? (t - g.t0) / g.dur : 0;
+      // ease in-out untuk gestur
+      const gEase = gActive ? Math.sin(gP * Math.PI) : 0;
+
+      for (const side of ['left', 'right']) {
+        const isLeft = side === 'left';
+        const arm   = isLeft ? lArm : rArm;
+        const elbow = isLeft ? lElbow : rElbow;
+        const hand  = isLeft ? lHand : rHand;
+        const info = poseInfo[side];
+        if (!arm || !info) continue;
+
+        // Ayunan idle (samping-samping pelan)
+        const sway = Math.sin(t * 0.6 + idleSeed + (isLeft ? 0 : 1.2)) * 0.07;
+        const zBase = info.zDown + sway;
+        const sg = info.elbowSign;   // +1 kiri, -1 kanan (cermin)
+
+        let z = zBase;
+        let armX = Math.sin(t * 0.45 + idleSeed) * 0.05;
+        let elbowZ = info.baseElbowZ + sg * Math.sin(t * 0.7 + idleSeed) * 0.05;
+        let handZ = info.baseHandZ, handY = 0;
+
+        if (gActive && g.side === side) {
+          if (g.type === 'wave') {
+            // Melambai: lengan tetap menggantung, SIKU dilipat (sumbu Z) supaya
+            // tangan naik ke area dada tanpa melebar horizontal
+            const lift = gEase;
+            z = THREE.MathUtils.lerp(zBase, info.zDown * 0.95, lift);
+            elbowZ = THREE.MathUtils.lerp(info.baseElbowZ, info.elbowWave, lift)
+                   + sg * Math.sin(t * 12) * 0.10 * lift;
+            handY = Math.sin(t * 13) * 0.45 * lift;     // kibasan tangan
+            handZ = info.baseHandZ + sg * Math.sin(t * 13 + 1) * 0.25 * lift;
+          } else if (g.type === 'point') {
+            // Tunjuk ke kamera: lengan tetap di sisi badan tapi diayunkan ke
+            // depan (tidak melebar horizontal, jadi framing tetap pas)
+            elbowZ = THREE.MathUtils.lerp(info.baseElbowZ, 0, gEase);
+            armX = -0.70 * gEase;                      // arahkan ke depan
+            handY = -0.25 * gEase;
+            handZ = info.baseHandZ * (1 - gEase);
+          } else {
+            // Gerakkan tangan santai di samping badan
+            z = zBase + Math.sin(t * 5) * 0.10 * gEase;
+            elbowZ = info.baseElbowZ + sg * Math.sin(t * 4 + 1) * 0.55 * gEase;
+            handY = Math.sin(t * 6) * 0.40 * gEase;
+            handZ = info.baseHandZ + sg * Math.sin(t * 6 + 1) * 0.20 * gEase;
+          }
+        }
+
+        // Saat bicara, gerak tangan sedikit lebih ekspresif
+        if (talkAmount > 0.05) {
+          z += Math.sin(t * 3.1 + idleSeed) * 0.05 * talkAmount;
+          elbowZ += sg * Math.sin(t * 2.6 + idleSeed + 1) * 0.08 * talkAmount;
+        }
+
+        arm.rotation.z = z;
+        arm.rotation.x = armX;
+        if (elbow) elbow.rotation.z = elbowZ;
+        if (hand) { hand.rotation.y = handY; hand.rotation.z = handZ; }
+      }
+
+      // --- Auto-fit dimatikan (mencegah zoom-out bertahap) ---
+
+      // --- Fallback rahang: untuk model TANPA ekspresi wajah ---
+      const jaw = hum.getNormalizedBoneNode('jaw');
+      if (jaw) {
+        jaw.rotation.x = talkAmount * 0.22;
+      }
+    }
+  }
+
+  // Hitung framing kamera setelah model benar-benar siap (setelah frame
+  // pertama ter-render), bukan langsung saat model dimuat.
+  if (jadwalFrame && performance.now() >= jadwalFrame) {
+    jadwalFrame = 0;
+    frameCamera();
+  }
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+animate();
+
+// ---------- Poll dari server ----------
+let sudahSync = false;
+let lastGestureToken = 0;
+async function poll() {
+  window.ROBOT_POLL_N = (window.ROBOT_POLL_N || 0) + 1;
+  try {
+    const r = await fetch('/state?t=' + Date.now(), { cache: 'no-store' });
+    const s = await r.json();
+    if (s.mood) moodName = s.mood;
+    const firstSync = !sudahSync;
+    if (s.gesture && s.gestureToken && s.gestureToken !== lastGestureToken) {
+      lastGestureToken = s.gestureToken;
+      if (!firstSync && window.ROBOT_GESTURE) {
+        window.ROBOT_GESTURE(s.gesture, s.gestureSide || 'right', 2.6);
+      }
+    }
+    window.ROBOT_POLL = { n: (window.ROBOT_POLL ? window.ROBOT_POLL.n : 0) + 1, token: s.gestureToken, last: lastGestureToken, sync: sudahSync };
+    if (s.token && s.token !== lastToken && s.audio) {
+      if (firstSync) {
+        // Sync pertama setelah page load: jangan ulang audio lama
+        lastToken = s.token;
+      } else {
+        lastToken = s.token;
+        if (s.effect === 'birthday') efekUltah();
+        else if (s.effect === 'doa') efekDoa();
+        speakAudio(s.audio, s.text);
+      }
+    }
+    sudahSync = true;
+  } catch (e) { console.warn('Poll error:', e); }
+  setTimeout(poll, 200);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Subtitle Robot</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: transparent; overflow: hidden;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  #box {
+    position: absolute;
+    bottom: 40px; left: 50%;
+    transform: translateX(-50%);
+    max-width: 80%;
+    padding: 14px 28px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #00e5ff;
+    font-size: 42px;
+    font-weight: 700;
+    text-align: center;
+    border-radius: 16px;
+    text-shadow: 0 0 10px #00e5ff;
+    white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+  <div id="box"></div>
+  <script>
+    async function update() {
+      try {
+        const r = await fetch('subtitle.txt?t=' + Date.now(), { cache: 'no-store' });
+        const t = await r.text();
+        document.getElementById('box').textContent = t;
+      } catch (e) {}
+    }
+    setInterval(update, 300);
+    update();
+  </script>
+</body>
+</html>
